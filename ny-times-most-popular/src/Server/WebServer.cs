@@ -5,14 +5,11 @@ namespace ny_times_most_popular.src.Server
     internal class WebServer
     {
         private readonly HttpListener listener = new();
-        private readonly RequestQueue queue = new();
-        private readonly WorkerPool pool;
         private readonly CancellationTokenSource cts = new();
 
-        public WebServer(int workerCount)
+        public WebServer()
         {
             listener.Prefixes.Add("http://localhost:5050/");
-            pool = new WorkerPool(queue, workerCount, cts.Token);
         }
 
         public async Task StartAsync()
@@ -35,7 +32,10 @@ namespace ny_times_most_popular.src.Server
                 try
                 {
                     HttpListenerContext context = await listener.GetContextAsync();
-                    queue.EnqueueRequest(context);
+                    _ = Task.Run(async () =>
+                    {
+                        await RequestHandler.HandleRequestAsync(context);
+                    });
                 }
                 catch
                 {
@@ -47,7 +47,6 @@ namespace ny_times_most_popular.src.Server
         private void Stop()
         {
             cts.Cancel();
-            pool.WaitAll();
             listener.Stop();
             Logger.Log("Server uspesno ugasen.");
         }
