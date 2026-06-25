@@ -6,12 +6,13 @@ namespace ny_times_most_popular.src.Server
 {
     internal class NytService
     {
-        private readonly HttpClient client = new();
+        private readonly HttpClient client;
         private readonly string key;
 
         public NytService(string key)
         {
             this.key = key;
+            client = new HttpClient();
         }
 
         public IObservable<Article> GetArticles(int period)
@@ -32,7 +33,8 @@ namespace ny_times_most_popular.src.Server
                         Title = x.GetProperty("title").GetString() ?? "",
                         Abstract = x.GetProperty("abstract").GetString() ?? "",
                         Url = x.GetProperty("url").GetString() ?? ""
-                    });
+                    })
+                    .ToList();
             })
             .Where(a => !string.IsNullOrEmpty(a.Title));
         }
