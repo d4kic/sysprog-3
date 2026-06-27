@@ -11,13 +11,8 @@ namespace ny_times_most_popular.src.Actors
         {
             Receive<ArticlesBatch>(msg =>
             {
-                articles.AddRange(msg.Articles);
+                articles.AddRange(msg.articles);
                 Logger.Log($"Prikupljeni clanci: {articles.Count}");
-            });
-
-            Receive<Analyze>(_ =>
-            {
-                Sender.Tell(articles.ToList());
             });
         }
     }
