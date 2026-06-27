@@ -3,6 +3,7 @@ using ny_times_most_popular.src.Models;
 using ny_times_most_popular.src.Server;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
+using System.Reactive.Threading.Tasks;
 
 namespace ny_times_most_popular.src.Actors
 {
@@ -10,26 +11,40 @@ namespace ny_times_most_popular.src.Actors
     {
         private readonly NytService service;
         private readonly IActorRef articleActor;
+        private readonly IActorRef analysisActor;
 
-        public RequestActor(NytService service, IActorRef articleActor)
+        public RequestActor(NytService service, IActorRef articleActor, IActorRef analysisActor)
         {
             this.service = service;
             this.articleActor = articleActor;
+            this.analysisActor = analysisActor;
 
-            Receive<LoadArticles>(msg =>
+            ReceiveAsync<LoadArticles>(HandleLoadArticles);
+        }
+
+        private async Task HandleLoadArticles(LoadArticles msg)
+        {
+            var sender = Sender;
+            Logger.Log($"RX start");
+            try
             {
-                Logger.Log($"RX START {msg.period}");
-
-                service.GetArticles(msg.period)
+                var articles = await service.GetArticles(msg.period)
                     .SubscribeOn(TaskPoolScheduler.Default)
-                    .Subscribe(article =>
-                    {
-                        Logger.Log("RX -> Actor " + article.Title);
-                        articleActor.Tell(new ArticlesBatch(new List<Article> { article }));
-                    },
-                    ex => Logger.Log("RX ERROR " + ex.Message),
-                    () => Logger.Log("RX COMPLETE"));
-            });
+                    .Do(a => Logger.Log($"RX obradio {a.Title}"))
+                    .ToList()
+                    .Select(list => list.ToList())
+                    .ToTask();
+                Logger.Log($"RX complete - {articles.Count} clanaka obradjeno.");
+                articleActor.Tell(new ArticlesBatch(articles, msg.period));
+                var result = await analysisActor.Ask<TopicsResult>(
+                    new ComputeTopics(msg.period, articles), TimeSpan.FromSeconds(10));
+                sender.Tell(result);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"RX ERROR {ex.Message}");
+                sender.Tell(new TopicsResult(msg.period, new List<TopicInfo>(), 0));
+            }
         }
     }
 }

@@ -18,25 +18,24 @@ namespace ny_times_most_popular.src.Server
         private static readonly IActorRef articleActor = system.ActorOf(Props.Create<ArticleActor>(), "articleActor");
         private static readonly IActorRef analysisActor = system.ActorOf(Props.Create<AnalysisActor>(), "analysisActor");
         private static readonly IActorRef requestActor = system.ActorOf(Props.Create(() => new RequestActor(
-            new NytService(Environment.GetEnvironmentVariable("API_KEY")!), articleActor)), "requestActor");
+            new NytService(Environment.GetEnvironmentVariable("API_KEY")!), articleActor, analysisActor)), "requestActor");
 
         public static async Task HandleRequestAsync(HttpListenerContext context)
         {
+            var path = context.Request.Url?.AbsolutePath ?? "/";
+            Logger.Log($"Server primio zahtev {path}");
             try
             {
-                if (context.Request.Url?.AbsolutePath == "/analyze")
+                int period = int.TryParse(context.Request.QueryString["period"], out int p) ? p : 7;
+                if (period != 1 && period != 7 && period != 30)
                 {
-                    var articles = await articleActor.Ask<List<Article>>(new Analyze());
-                    var result = await analysisActor.Ask<TopicsResult>(articles);
-                    await SendAsync(context, JsonSerializer.Serialize(result));
+                    Logger.Log($"Neispravan period = {period}");
+                    await SendAsync(context, JsonSerializer.Serialize(new { error = "period mora biti 1, 7 ili 30" }), 400);
                     return;
                 }
-                
-                int period = int.TryParse(context.Request.QueryString["period"], out int p) ? p : 7;
-
-                requestActor.Tell(new LoadArticles(period));
-
-                await SendAsync(context, "{\"status\":\"processing\"}");
+                var result = await requestActor.Ask<TopicsResult>(new LoadArticles(period), TimeSpan.FromSeconds(10));
+                await SendAsync(context, JsonSerializer.Serialize(result));
+                Logger.Log($"Zahtev uspesno obradjen");
             }
             catch (Exception ex)
             {
