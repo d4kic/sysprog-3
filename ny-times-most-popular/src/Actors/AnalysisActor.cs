@@ -1,13 +1,19 @@
 ﻿using Akka.Actor;
 using Microsoft.ML;
 using ny_times_most_popular.src.Models;
-using System.Linq;
 
 namespace ny_times_most_popular.src.Actors
 {
     internal class AnalysisActor : ReceiveActor
     {
         private readonly MLContext ml = new();
+
+        private static readonly HashSet<string> skip = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "the","a","an","and","or","of","to","in","on","for","with","is","are","was",
+            "were","it","that","this","as","by","at","from","be","has","have","its",
+            "his","her","their","but","not","said","will","new","york","times", "after"
+        };
 
         public AnalysisActor()
         {
@@ -51,9 +57,9 @@ namespace ny_times_most_popular.src.Actors
                 .OrderByDescending(g => g.Value.Count)
                 .Select(g => new TopicInfo(
                     clusterId: (int)g.Key,
-                    keywords: ExtractKeywords(g.Value),
-                    articleCount: g.Value.Count,
-                    sampleTitles: g.Value.Take(3).Select(a => a.Title).ToList()))
+                    reci: ExtractKeywords(g.Value),
+                    brojClanaka: g.Value.Count,
+                    naslovi: g.Value.Select(a => a.Title).ToList()))
                 .ToList();
         }
 
@@ -68,7 +74,7 @@ namespace ny_times_most_popular.src.Actors
                         StringSplitOptions.RemoveEmptyEntries);
                 foreach(var w in words)
                 {
-                    if (w.Length < 4)
+                    if (w.Length < 4 || skip.Contains(w))
                         continue;
                     counts[w] = counts.GetValueOrDefault(w) + 1;
                 }

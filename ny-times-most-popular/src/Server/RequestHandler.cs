@@ -22,8 +22,7 @@ namespace ny_times_most_popular.src.Server
 
         public static async Task HandleRequestAsync(HttpListenerContext context)
         {
-            var path = context.Request.Url?.AbsolutePath ?? "/";
-            Logger.Log($"Server primio zahtev {path}");
+            Logger.Log($"Server primio zahtev {context.Request.Url?.PathAndQuery ?? "/"}");
             try
             {
                 int period = int.TryParse(context.Request.QueryString["period"], out int p) ? p : 7;
