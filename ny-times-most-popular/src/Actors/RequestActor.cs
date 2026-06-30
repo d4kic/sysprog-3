@@ -1,5 +1,4 @@
 ﻿using Akka.Actor;
-using ny_times_most_popular.src.Models;
 using ny_times_most_popular.src.Server;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
