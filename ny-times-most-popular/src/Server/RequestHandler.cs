@@ -1,24 +1,34 @@
 ﻿using Akka.Actor;
+using Akka.Configuration;
 using ny_times_most_popular.src.Actors;
-using ny_times_most_popular.src.Models;
-using System;
-using System.Collections.Generic;
-using System.Drawing.Text;
-using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace ny_times_most_popular.src.Server
 {
     internal static class RequestHandler
     {
-        private static readonly ActorSystem system = ActorSystem.Create("nyt-system");
+        private static readonly Config config = ConfigurationFactory.ParseString("""
+            disp {
+                type = ForkJoinDispatcher
+                throughput = 5
+                dedicated-thread-pool {
+                    thread-count = 4
+                }
+            }
+            """);
+
+        private static readonly ActorSystem system = ActorSystem.Create("nyt-system", config);
+
         private static readonly IActorRef articleActor = system.ActorOf(Props.Create<ArticleActor>(), "articleActor");
-        private static readonly IActorRef analysisActor = system.ActorOf(Props.Create<AnalysisActor>(), "analysisActor");
-        private static readonly IActorRef requestActor = system.ActorOf(Props.Create(() => new RequestActor(
-            new NytService(Environment.GetEnvironmentVariable("API_KEY")!), articleActor, analysisActor)), "requestActor");
+        
+        private static readonly IActorRef analysisActor = system.ActorOf(Props.Create<AnalysisActor>()
+            .WithDispatcher("disp"), "analysisActor");
+        
+        private static readonly IActorRef requestActor = system.ActorOf(Props.Create(() => 
+        new RequestActor(new NytService(Environment.GetEnvironmentVariable("API_KEY")!),
+            articleActor, analysisActor)), "requestActor");
 
         public static async Task HandleRequestAsync(HttpListenerContext context)
         {
