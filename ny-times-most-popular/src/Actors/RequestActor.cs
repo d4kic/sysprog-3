@@ -1,4 +1,5 @@
 ﻿using Akka.Actor;
+using Akka.Annotations;
 using ny_times_most_popular.src.Server;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
@@ -27,13 +28,17 @@ namespace ny_times_most_popular.src.Actors
             {
                 var articles = await service.GetArticles(msg.period)
                     .SubscribeOn(TaskPoolScheduler.Default)
-                    .Do(a => Logger.Log($"RX obradio {a.Title}"))
+                    .Do(a =>
+                    {
+                        Logger.Log($"RX obradio {a.Title}");
+                        analysisActor.Tell(new StoreArticle(msg.period, a));
+                    })
                     .ToList()
                     .Select(list => list.ToList())
                     .ToTask();
                 Logger.Log($"RX complete - {articles.Count} clanaka obradjeno.");
-                var result = await analysisActor.Ask<TopicsResult>(
-                    new ComputeTopics(msg.period, articles), TimeSpan.FromSeconds(10));
+              
+                var result = await analysisActor.Ask<TopicsResult>(new ComputeTopics(msg.period), TimeSpan.FromSeconds(10));
                 sender.Tell(result);
             }
             catch (Exception ex)

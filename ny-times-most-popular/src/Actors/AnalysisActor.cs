@@ -7,6 +7,7 @@ namespace ny_times_most_popular.src.Actors
     internal class AnalysisActor : ReceiveActor
     {
         private readonly MLContext ml = new();
+        private readonly Dictionary<int, List<Article>> articlesByPeriod = new();
 
         private static readonly HashSet<string> skip = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -17,11 +18,30 @@ namespace ny_times_most_popular.src.Actors
 
         public AnalysisActor()
         {
-            Receive<ComputeTopics>(msg =>
+            Receive<ComputeTopics>(HandleComputeTopics);
+            Receive<StoreArticle>(HandleStoreArticle);
+        }
+
+        private void HandleStoreArticle(StoreArticle msg)
+        {
+            if (!articlesByPeriod.ContainsKey(msg.period))
             {
-                var topics = ExtractTopics(msg.articles);
-                Sender.Tell(new TopicsResult(msg.period, topics, msg.articles.Count));
-            });
+                articlesByPeriod[msg.period] = new List<Article>();
+            }
+
+            articlesByPeriod[msg.period].Add(msg.article);
+        }
+
+        private void HandleComputeTopics(ComputeTopics msg)
+        {
+            if (!articlesByPeriod.TryGetValue(msg.period, out var articles))
+            {
+                Sender.Tell(new TopicsResult(msg.period, new List<TopicInfo>(), 0));
+                return;
+            }
+
+            var topics = ExtractTopics(articles);
+            Sender.Tell(new TopicsResult(msg.period, topics, articles.Count));
         }
 
         private List<TopicInfo> ExtractTopics(List<Article> articles)

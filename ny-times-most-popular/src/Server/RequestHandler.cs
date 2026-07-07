@@ -24,8 +24,8 @@ namespace ny_times_most_popular.src.Server
         private static readonly IActorRef analysisActor = system.ActorOf(Props.Create<AnalysisActor>()
             .WithDispatcher("disp"), "analysisActor");
         
-        private static readonly IActorRef requestActor = system.ActorOf(Props.Create(() => 
-        new RequestActor(new NytService(Environment.GetEnvironmentVariable("API_KEY")!), analysisActor)), "requestActor");
+        private static readonly IActorRef requestActor = system.ActorOf(Props.Create(() => new RequestActor(
+            new NytService(Environment.GetEnvironmentVariable("API_KEY")!), analysisActor)), "requestActor");
 
         public static async Task HandleRequestAsync(HttpListenerContext context)
         {
