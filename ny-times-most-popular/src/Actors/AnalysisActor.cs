@@ -70,7 +70,7 @@ namespace ny_times_most_popular.src.Actors
             foreach (var a in articles)
             {
                 var words = $"{a.Title} {a.Abstract}".ToLowerInvariant()
-                    .Split(new[] { '’', '‘', '“', '”', ' ', '.', ',', ':', ';', '!', '?', '"', '\'', '(', ')', '[', ']', '/', '\\', '-', '_' },
+                    .Split(['’', '‘', '“', '”', ' ', '.', ',', ':', ';', '!', '?', '"', '\'', '(', ')', '[', ']', '/', '\\', '-', '_'],
                         StringSplitOptions.RemoveEmptyEntries);
                 foreach(var w in words)
                 {

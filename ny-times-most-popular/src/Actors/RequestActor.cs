@@ -9,13 +9,11 @@ namespace ny_times_most_popular.src.Actors
     internal class RequestActor : ReceiveActor
     {
         private readonly NytService service;
-        private readonly IActorRef articleActor;
         private readonly IActorRef analysisActor;
 
-        public RequestActor(NytService service, IActorRef articleActor, IActorRef analysisActor)
+        public RequestActor(NytService service, IActorRef analysisActor)
         {
             this.service = service;
-            this.articleActor = articleActor;
             this.analysisActor = analysisActor;
 
             ReceiveAsync<LoadArticles>(HandleLoadArticles);
@@ -34,7 +32,6 @@ namespace ny_times_most_popular.src.Actors
                     .Select(list => list.ToList())
                     .ToTask();
                 Logger.Log($"RX complete - {articles.Count} clanaka obradjeno.");
-                articleActor.Tell(new ArticlesBatch(articles, msg.period));
                 var result = await analysisActor.Ask<TopicsResult>(
                     new ComputeTopics(msg.period, articles), TimeSpan.FromSeconds(10));
                 sender.Tell(result);

@@ -20,15 +20,12 @@ namespace ny_times_most_popular.src.Server
             """);
 
         private static readonly ActorSystem system = ActorSystem.Create("nyt-system", config);
-
-        private static readonly IActorRef articleActor = system.ActorOf(Props.Create<ArticleActor>(), "articleActor");
         
         private static readonly IActorRef analysisActor = system.ActorOf(Props.Create<AnalysisActor>()
             .WithDispatcher("disp"), "analysisActor");
         
         private static readonly IActorRef requestActor = system.ActorOf(Props.Create(() => 
-        new RequestActor(new NytService(Environment.GetEnvironmentVariable("API_KEY")!),
-            articleActor, analysisActor)), "requestActor");
+        new RequestActor(new NytService(Environment.GetEnvironmentVariable("API_KEY")!), analysisActor)), "requestActor");
 
         public static async Task HandleRequestAsync(HttpListenerContext context)
         {
