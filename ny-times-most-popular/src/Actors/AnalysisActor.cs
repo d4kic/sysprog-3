@@ -8,16 +8,35 @@ namespace ny_times_most_popular.src.Actors
     {
         private readonly MLContext ml = new();
         private readonly Dictionary<int, List<Article>> articlesByPeriod = new();
+        private readonly Dictionary<int, TopicsResult> topicsByPeriod = new();
 
         private static readonly HashSet<string> skip = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "the","a","an","and","or","of","to","in","on","for","with","is","are","was",
             "were","it","that","this","as","by","at","from","be","has","have","its",
-            "his","her","their","but","not","said","will","new","york","times", "after"
+            "his","her","their","but","not","said","will","new","york","times","after"
         };
 
         public AnalysisActor()
         {
+            Receive<ClearArticles>(msg =>
+            {
+                articlesByPeriod.Remove(msg.period);
+                Logger.Log($"Obrisani clanci za period = {msg.period}");
+            });
+
+            Receive<GetTopics>(msg =>
+            {
+                if (topicsByPeriod.TryGetValue(msg.period, out var result))
+                {
+                    Sender.Tell(result);
+                }
+                else
+                {
+                    Sender.Tell(new TopicsResult(msg.period, new List<TopicInfo>(), 0));
+                }
+            });
+
             Receive<ComputeTopics>(HandleComputeTopics);
             Receive<StoreArticle>(HandleStoreArticle);
         }
@@ -41,7 +60,7 @@ namespace ny_times_most_popular.src.Actors
             }
 
             var topics = ExtractTopics(articles);
-            Sender.Tell(new TopicsResult(msg.period, topics, articles.Count));
+            topicsByPeriod[msg.period] = new TopicsResult(msg.period, topics, articles.Count);
         }
 
         private List<TopicInfo> ExtractTopics(List<Article> articles)

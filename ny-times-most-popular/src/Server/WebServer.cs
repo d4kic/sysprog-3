@@ -5,7 +5,6 @@ namespace ny_times_most_popular.src.Server
     internal class WebServer
     {
         private readonly HttpListener listener = new();
-        private readonly CancellationTokenSource cts = new();
 
         public WebServer()
         {
@@ -46,8 +45,8 @@ namespace ny_times_most_popular.src.Server
 
         private void Stop()
         {
-            cts.Cancel();
             listener.Stop();
+            RequestHandler.Stop();
             Logger.Log("Server uspesno ugasen.");
         }
     }

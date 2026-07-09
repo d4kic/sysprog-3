@@ -10,22 +10,20 @@ namespace ny_times_most_popular.src.Server
     internal static class RequestHandler
     {
         private static readonly Config config = ConfigurationFactory.ParseString("""
-            disp {
-                type = ForkJoinDispatcher
-                throughput = 5
-                dedicated-thread-pool {
-                    thread-count = 4
-                }
-            }
-            """);
+             disp {
+                 type = ForkJoinDispatcher
+                 dedicated-thread-pool {
+                     thread-count = 1
+                 }
+             }
+             """);
 
         private static readonly ActorSystem system = ActorSystem.Create("nyt-system", config);
-        
+
         private static readonly IActorRef analysisActor = system.ActorOf(Props.Create<AnalysisActor>()
             .WithDispatcher("disp"), "analysisActor");
-        
-        private static readonly IActorRef requestActor = system.ActorOf(Props.Create(() => new RequestActor(
-            new NytService(Environment.GetEnvironmentVariable("API_KEY")!), analysisActor)), "requestActor");
+
+        public static IActorRef AnalysisActor => analysisActor;
 
         public static async Task HandleRequestAsync(HttpListenerContext context)
         {
@@ -39,9 +37,9 @@ namespace ny_times_most_popular.src.Server
                     await SendAsync(context, JsonSerializer.Serialize(new { error = "period mora biti 1, 7 ili 30" }), 400);
                     return;
                 }
-                var result = await requestActor.Ask<TopicsResult>(new LoadArticles(period), TimeSpan.FromSeconds(10));
+                var result = await analysisActor.Ask<TopicsResult>(new GetTopics(period));
                 await SendAsync(context, JsonSerializer.Serialize(result));
-                Logger.Log($"Zahtev uspesno obradjen");
+                Logger.Log("Obrada zavrsena.");
             }
             catch (Exception ex)
             {
@@ -58,6 +56,11 @@ namespace ny_times_most_popular.src.Server
             context.Response.ContentLength64 = buff.Length;
             await context.Response.OutputStream.WriteAsync(buff);
             context.Response.Close();
+        }
+
+        public static void Stop()
+        {
+            system.Terminate().Wait(TimeSpan.FromSeconds(10));
         }
     }
 }
