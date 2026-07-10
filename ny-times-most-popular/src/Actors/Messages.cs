@@ -2,7 +2,6 @@
 
 namespace ny_times_most_popular.src.Actors
 {
-    public record LoadArticles(int period);
     public record StoreArticle(int period, Article article);
     public record ComputeTopics(int period);
     public record GetTopics(int period);

@@ -13,7 +13,7 @@ namespace ny_times_most_popular.src.Server
              disp {
                  type = ForkJoinDispatcher
                  dedicated-thread-pool {
-                     thread-count = 1
+                     thread-count = 4
                  }
              }
              """);
@@ -37,9 +37,9 @@ namespace ny_times_most_popular.src.Server
                     await SendAsync(context, JsonSerializer.Serialize(new { error = "period mora biti 1, 7 ili 30" }), 400);
                     return;
                 }
-                var result = await analysisActor.Ask<TopicsResult>(new GetTopics(period));
+                var result = await analysisActor.Ask<TopicsResult>(new GetTopics(period), TimeSpan.FromSeconds(5));
                 await SendAsync(context, JsonSerializer.Serialize(result));
-                Logger.Log("Obrada zavrsena.");
+                Logger.Log($"Zahtev uspesno obradjen: period = {period}");
             }
             catch (Exception ex)
             {

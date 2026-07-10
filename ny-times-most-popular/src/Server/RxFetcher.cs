@@ -1,12 +1,7 @@
 ﻿using Akka.Actor;
 using ny_times_most_popular.src.Actors;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ny_times_most_popular.src.Server
 {
@@ -54,7 +49,7 @@ namespace ny_times_most_popular.src.Server
                     },
                     onCompleted: () =>
                     {
-                        Logger.Log($"RX complete {period} - trazim analizu");
+                        Logger.Log($"RX complete {period}");
                         analysisActor.Tell(new ComputeTopics(period));
                     }
                 );

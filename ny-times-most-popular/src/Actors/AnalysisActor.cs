@@ -55,12 +55,21 @@ namespace ny_times_most_popular.src.Actors
         {
             if (!articlesByPeriod.TryGetValue(msg.period, out var articles))
             {
-                Sender.Tell(new TopicsResult(msg.period, new List<TopicInfo>(), 0));
+                Logger.Log($"Nema clanaka za period = {msg.period}");
                 return;
             }
 
-            var topics = ExtractTopics(articles);
-            topicsByPeriod[msg.period] = new TopicsResult(msg.period, topics, articles.Count);
+            try
+            {
+                Logger.Log($"ML.NET analiza za period = {msg.period}");
+                var topics = ExtractTopics(articles);
+                topicsByPeriod[msg.period] = new TopicsResult(msg.period, topics, articles.Count);
+                Logger.Log($"Teme obradjene za period = {msg.period}");
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Greska u obradi: {ex.Message}");
+            }
         }
 
         private List<TopicInfo> ExtractTopics(List<Article> articles)
