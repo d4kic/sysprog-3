@@ -8,13 +8,13 @@ namespace ny_times_most_popular.src.Server
     internal class RxFetcher
     {
         private readonly NytService service;
-        private readonly IActorRef analysisActor;
+        private readonly IActorRef manager;
         private readonly int[] periods = { 1, 7, 30 };
 
-        public RxFetcher(NytService service, IActorRef analysisActor)
+        public RxFetcher(NytService service, IActorRef manager)
         {
             this.service = service;
-            this.analysisActor = analysisActor;
+            this.manager = manager;
         }
 
         public void Start()
@@ -33,7 +33,7 @@ namespace ny_times_most_popular.src.Server
         private void FetchPeriod(int period)
         {
             Logger.Log($"RX: Fetch za period = {period}");
-            analysisActor.Tell(new ClearArticles(period));
+            manager.Tell(new ClearArticles(period));
 
             service.GetArticles(period)
                 .SubscribeOn(TaskPoolScheduler.Default)
@@ -41,7 +41,7 @@ namespace ny_times_most_popular.src.Server
                     onNext: a =>
                     {
                         Logger.Log($"RX {period} obradio: {a.Title}");
-                        analysisActor.Tell(new StoreArticle(period, a));
+                        manager.Tell(new StoreArticle(period, a));
                     },
                     onError: ex =>
                     {
@@ -50,7 +50,7 @@ namespace ny_times_most_popular.src.Server
                     onCompleted: () =>
                     {
                         Logger.Log($"RX complete {period}");
-                        analysisActor.Tell(new ComputeTopics(period));
+                        manager.Tell(new ComputeTopics(period));
                     }
                 );
         }

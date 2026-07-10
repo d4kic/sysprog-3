@@ -7,8 +7,6 @@ namespace ny_times_most_popular.src.Actors
     internal class AnalysisActor : ReceiveActor
     {
         private readonly MLContext ml = new();
-        private readonly Dictionary<int, List<Article>> articlesByPeriod = new();
-        private readonly Dictionary<int, TopicsResult> topicsByPeriod = new();
 
         private static readonly HashSet<string> skip = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -19,57 +17,19 @@ namespace ny_times_most_popular.src.Actors
 
         public AnalysisActor()
         {
-            Receive<ClearArticles>(msg =>
+            Receive<AnalyzeArticles>(msg =>
             {
-                articlesByPeriod.Remove(msg.period);
-                Logger.Log($"Obrisani clanci za period = {msg.period}");
-            });
-
-            Receive<GetTopics>(msg =>
-            {
-                if (topicsByPeriod.TryGetValue(msg.period, out var result))
+                try
                 {
-                    Sender.Tell(result);
+                    var topics = ExtractTopics(msg.articles);
+                    Sender.Tell(new TopicsResult(msg.period, topics, msg.articles.Count));
                 }
-                else
+                catch (Exception ex)
                 {
+                    Logger.Log($"AnalysisActor period={msg.period} GRESKA: {ex.Message}");
                     Sender.Tell(new TopicsResult(msg.period, new List<TopicInfo>(), 0));
                 }
             });
-
-            Receive<ComputeTopics>(HandleComputeTopics);
-            Receive<StoreArticle>(HandleStoreArticle);
-        }
-
-        private void HandleStoreArticle(StoreArticle msg)
-        {
-            if (!articlesByPeriod.ContainsKey(msg.period))
-            {
-                articlesByPeriod[msg.period] = new List<Article>();
-            }
-
-            articlesByPeriod[msg.period].Add(msg.article);
-        }
-
-        private void HandleComputeTopics(ComputeTopics msg)
-        {
-            if (!articlesByPeriod.TryGetValue(msg.period, out var articles))
-            {
-                Logger.Log($"Nema clanaka za period = {msg.period}");
-                return;
-            }
-
-            try
-            {
-                Logger.Log($"ML.NET analiza za period = {msg.period}");
-                var topics = ExtractTopics(articles);
-                topicsByPeriod[msg.period] = new TopicsResult(msg.period, topics, articles.Count);
-                Logger.Log($"Teme obradjene za period = {msg.period}");
-            }
-            catch (Exception ex)
-            {
-                Logger.Log($"Greska u obradi: {ex.Message}");
-            }
         }
 
         private List<TopicInfo> ExtractTopics(List<Article> articles)
@@ -134,6 +94,11 @@ namespace ny_times_most_popular.src.Actors
                 .Take(n)
                 .Select(kv => kv.Key)
                 .ToList();
+        }
+
+        public static Props Props()
+        {
+            return Akka.Actor.Props.Create<AnalysisActor>();
         }
     }
 }

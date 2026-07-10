@@ -5,7 +5,7 @@ Env.Load();
 
 var fetcher = new RxFetcher(
     new NytService(Environment.GetEnvironmentVariable("API_KEY")!),
-    RequestHandler.AnalysisActor);
+    RequestHandler.Manager);
 fetcher.Start();
 
 WebServer server = new WebServer();

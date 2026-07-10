@@ -10,20 +10,26 @@ namespace ny_times_most_popular.src.Server
     internal static class RequestHandler
     {
         private static readonly Config config = ConfigurationFactory.ParseString("""
-             disp {
+             manager-disp {
                  type = ForkJoinDispatcher
-                 dedicated-thread-pool {
-                     thread-count = 4
+                 dedicated-thread-pool { 
+                    thread-count = 2 
+                 }
+             }
+             analysis-disp {
+                 type = ForkJoinDispatcher
+                 dedicated-thread-pool { 
+                    thread-count = 1 
                  }
              }
              """);
 
         private static readonly ActorSystem system = ActorSystem.Create("nyt-system", config);
 
-        private static readonly IActorRef analysisActor = system.ActorOf(Props.Create<AnalysisActor>()
-            .WithDispatcher("disp"), "analysisActor");
+        private static readonly IActorRef manager = system.ActorOf(
+            ManagerActor.Props().WithDispatcher("manager-disp"), "managerActor");
 
-        public static IActorRef AnalysisActor => analysisActor;
+        public static IActorRef Manager => manager;
 
         public static async Task HandleRequestAsync(HttpListenerContext context)
         {
@@ -37,7 +43,7 @@ namespace ny_times_most_popular.src.Server
                     await SendAsync(context, JsonSerializer.Serialize(new { error = "period mora biti 1, 7 ili 30" }), 400);
                     return;
                 }
-                var result = await analysisActor.Ask<TopicsResult>(new GetTopics(period), TimeSpan.FromSeconds(5));
+                var result = await manager.Ask<TopicsResult>(new GetTopics(period), TimeSpan.FromSeconds(5));
                 await SendAsync(context, JsonSerializer.Serialize(result));
                 Logger.Log($"Zahtev uspesno obradjen: period = {period}");
             }

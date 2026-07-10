@@ -8,4 +8,5 @@ namespace ny_times_most_popular.src.Actors
     public record TopicInfo(int clusterId, List<string> reci, int brojClanaka, List<string> naslovi);
     public record TopicsResult(int period, List<TopicInfo> topics, int brojClanaka);
     public record ClearArticles(int period);
+    public record AnalyzeArticles(int period, List<Article> articles);
 }
