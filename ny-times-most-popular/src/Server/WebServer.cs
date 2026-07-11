@@ -48,6 +48,7 @@ namespace ny_times_most_popular.src.Server
             listener.Stop();
             RequestHandler.Stop();
             Logger.Log("Server uspesno ugasen.");
+            Environment.Exit(0);
         }
     }
 }

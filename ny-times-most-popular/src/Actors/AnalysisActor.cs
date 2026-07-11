@@ -19,6 +19,7 @@ namespace ny_times_most_popular.src.Actors
         {
             Receive<AnalyzeArticles>(msg =>
             {
+                Logger.Log($"AnalysisActor za period = {msg.period} analizira {msg.articles.Count} clanaka (nit {Environment.CurrentManagedThreadId})");
                 try
                 {
                     var topics = ExtractTopics(msg.articles);

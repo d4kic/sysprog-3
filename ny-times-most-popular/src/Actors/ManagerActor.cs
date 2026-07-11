@@ -1,10 +1,5 @@
 ﻿using Akka.Actor;
 using ny_times_most_popular.src.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ny_times_most_popular.src.Actors
 {
@@ -40,7 +35,7 @@ namespace ny_times_most_popular.src.Actors
                 }
 
                 var actor = ActorForPeriod(msg.period);
-                actor.Ask<TopicsResult>(new AnalyzeArticles(msg.period, articles.ToList()), TimeSpan.FromSeconds(10))
+                actor.Ask<TopicsResult>(new AnalyzeArticles(msg.period, articles.ToList()), TimeSpan.FromSeconds(30))
                     .PipeTo(Self);
             });
 

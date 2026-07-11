@@ -17,10 +17,8 @@ namespace ny_times_most_popular.src.Server
                  }
              }
              analysis-disp {
-                 type = ForkJoinDispatcher
-                 dedicated-thread-pool { 
-                    thread-count = 1 
-                 }
+                 type = PinnedDispatcher
+                 executor = thread-pool-executor
              }
              """);
 
