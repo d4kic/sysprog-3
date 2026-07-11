@@ -13,7 +13,7 @@ namespace ny_times_most_popular.src.Server
              manager-disp {
                  type = ForkJoinDispatcher
                  dedicated-thread-pool { 
-                    thread-count = 2 
+                    thread-count = 4 
                  }
              }
              analysis-disp {
@@ -34,11 +34,18 @@ namespace ny_times_most_popular.src.Server
             Logger.Log($"Server primio zahtev {context.Request.Url?.PathAndQuery ?? "/"}");
             try
             {
-                int period = int.TryParse(context.Request.QueryString["period"], out int p) ? p : 7;
+                var periodStr = context.Request.QueryString["period"];
+                if (string.IsNullOrEmpty(periodStr) || !int.TryParse(periodStr, out var period))
+                {
+                    Logger.Log("Neispravan ili nedostajuci parametar period");
+                    await SendAsync(context,
+                        JsonSerializer.Serialize(new { error = "Parametar period nije prosledjen" }), 400);
+                    return;
+                }
                 if (period != 1 && period != 7 && period != 30)
                 {
                     Logger.Log($"Neispravan period = {period}");
-                    await SendAsync(context, JsonSerializer.Serialize(new { error = "period mora biti 1, 7 ili 30" }), 400);
+                    await SendAsync(context, JsonSerializer.Serialize(new { error = "Period mora biti 1, 7 ili 30" }), 400);
                     return;
                 }
                 var result = await manager.Ask<TopicsResult>(new GetTopics(period), TimeSpan.FromSeconds(5));
